@@ -192,4 +192,6 @@ Every guardrail is written against a specific failure of a specific model, and t
 
 *This is a living document — feedback is welcome via [issues](../../issues), and revisions ship as releases.*
 
+*The story of how these principles were earned: [The Workshop Is the Product](https://davefig.net/essays/the-workshop-is-the-product/).*
+
 *Last updated 2026-06-10 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
