@@ -1,7 +1,9 @@
 # claude-code-principles
 
-Public home of *Claude Code: Principles*. README.md **is** the document.
+**README.md is the document**: *Claude Code: Principles*. Here to read, start there.
+Found an error or want to propose a principle? See CONTRIBUTING.md.
 
-- README.md is fully generated — the canonical essay lives in a private workspace and a publish script regenerates this README, footer included. Never edit README.md directly; changes here get overwritten on the next publish.
-- Work in this repo is repo operations: commits, tags/releases, and issue triage. Accepted feedback on the essay's content gets noted for the canonical workspace, not applied to README.md here.
-- Tag a release when the essay revs; release notes summarize which principles changed.
+For Claude Code working in this repo:
+- README.md is the canonical essay, edited directly; there's no source/generated split.
+- Work here is repo operations: commits, release tags, issue triage.
+- Tag a release when the essay revs; release notes name which principles changed.

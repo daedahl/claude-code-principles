@@ -133,20 +133,26 @@ Place each boundary where its filter drops noise to amplify signal. The failure 
 
 ## VI. Pipeline Contracts
 
-### 21. Acceptance Criteria Are an Autonomy Contract
+### 21. Define Done, or Claude Will
 
-When a pipeline runs autonomously, criteria become load-bearing. Vague criteria cause every downstream agent to guess, and guessing compounds. Four checks for every criterion:
+Claude fills gaps well, so a missing definition of done never stalls the work. The agent supplies its own. It decides which tests count, what the PR includes, what "passing" means, and ships against that. Plausible, confident, and not yours. A fuller description won't fix it: prose criteria get quietly narrowed to fit whatever got built, and the narrowing reads as success. A check can't be narrowed after the fact. It clears the bar you set or it doesn't. Encode done as a test, a check, a CI gate the agent has to turn green; make it prove done, not claim done.
 
+Every other layer raises the probability of good work; a definition of done you can check confirms it.
+
+### 22. Acceptance Criteria Are an Autonomy Contract
+
+When a pipeline runs autonomously, criteria become load-bearing. Vague criteria cause every downstream agent to guess, and guessing compounds. Four checks for every criterion, testable first:
+
+- **Testable**: a machine can verify it automatically, as a test assertion
 - **Observable**: a human can verify it after the fact, by running a command or reading output
 - **Bounded**: scope is clear
 - **Unambiguous**: two reasonable agents wouldn't disagree
-- **Testable**: a machine can verify it automatically, as a test assertion
 
-### 22. Concrete Boundaries Are Greppable Boundaries
+### 23. Concrete Boundaries Are Greppable Boundaries
 
 Every boundary rule must be checkable by grepping imports or reading a diff. "No sqlite3 imports outside db.py and test files" passes: an evaluator can grep for it. "Use modular architecture" fails: an evaluator can't verify it against a diff. If you can't describe a grep command or point to a specific import to check, the rule isn't concrete enough. Rules files are the evaluator's enforcement spec; their concreteness bounds its effectiveness.
 
-### 23. User Input Is for Prescribed Checkpoints
+### 24. User Input Is for Prescribed Checkpoints
 
 When an agent stops to ask the user something mid-execution, two upstream failure modes hide behind the same symptom: a vague criterion that should have been tightened in planning, or a decision gate that should have been scheduled as a checkpoint. Neither is a feature to build by adding "ask user" capability; both are signals that structure is missing upstream. Letting agents ask freely erodes the autonomy contract: every interruption is a context switch for the human, and once asking is permitted, planning quality degrades because gaps don't have to be resolved before launch. Surfacing what changed (#15) is fine: that's reporting, not blocking. Quitting cleanly on a problem (#16) is reporting too. Asking is for checkpoints.
 
@@ -156,19 +162,19 @@ The fix is never to suppress questions; it is to move them earlier, into plannin
 
 ## VII. Memory
 
-### 24. Memory Is Claude's Domain, but Your Responsibility
+### 25. Memory Is Claude's Domain, but Your Responsibility
 
-Memory writing is autonomous: Claude writes during directed work, shaped by what felt important in the moment, potentially without you noticing. You don't always choose what gets saved; the default flow doesn't route through you. The leverage is direction, not suppression. Trigger cleanup yourself; Claude won't initiate it during directed work, so memories accumulate and degrade until something prompts a review.
+Memory writing is autonomous: Claude writes during directed work, shaped by what felt important in the moment, potentially without you noticing. You don't always choose what gets saved; the default flow doesn't route through you. The leverage is direction, not suppression. Trigger cleanup yourself; Claude won't initiate it during directed work, so memories accumulate and degrade until something prompts a review. Whether to run memory at all is an up-front, workflow-dependent call: it lives in interactive planning and discussion, so if the upkeep outweighs the gain for how you work, disabling it is legitimate.
 
-### 25. The Memory Index Is for Routing
+### 26. The Memory Index Is for Routing
 
 The memory index loads every session; the underlying memory files don't. Each entry's description is what tells Claude whether to open the file, which makes descriptions the routing mechanism. Write them as activation context ("when should I open this?"), not as content summaries. A summary tells Claude what's in the file; a trigger tells Claude when it matters. The first makes the index a table of contents; the second makes it a triage layer.
 
-### 26. Memory Is the Configuration That Rots
+### 27. Memory Is the Configuration That Rots
 
 Every other layer changes only when you change it. Memory writes itself, accruing as Claude works, with nothing to maintain what accumulates. It is hidden context that goes stale untouched: nothing corrects a claim that stops being true. A stale memory may override the instruction you deliberately wrote; you cannot count on the authored rule winning. And because it may not fire every session, the interference could be intermittent: the hardest kind to catch, because it will not reproduce on demand. The staleness you cannot see is the staleness that gets you.
 
-### 27. Mark What Will Go Stale
+### 28. Mark What Will Go Stale
 
 Every claim in a memory is durable or temporal. **Durable facts** are true about the nature of something: "this project is a portfolio site," "the user prefers rebase over merge." Safe to trust without verification. **Temporal claims** are true at a point in time: status updates, file paths, "next session" plans. Mark them explicitly so they can be discarded. Autonomous memory maintenance requires an explicit trigger; left to itself, memory accumulates and degrades indefinitely.
 
@@ -176,22 +182,20 @@ Every claim in a memory is durable or temporal. **Durable facts** are true about
 
 ## VIII. Configuration Lifecycle
 
-### 28. Write Rules After Mistakes, Not Before
+### 29. Write Rules After Mistakes, Not Before
 
 A rule written after a mistake is a record of an observed failure; a rule written before one is a guess, and Claude's defaults are strong enough that most guessed failures never arrive. Speculative rules are how a configuration bloats: each looks prudent in isolation, none can be checked against anything that actually happened, and together they dilute the rules that earn their keep. A rule born from a real mistake has what a guessed one lacks: evidence it's needed, a concrete behavior to watch for recurrence, and a visible condition for retiring it when the model stops making the mistake. So wait for the failure, then fix it at the most structural layer that solves it. This is what guarding only the cliffs (#13) buys: with the irreversible denied up front, every mistake that remains is recoverable, and a recoverable mistake is cheap evidence.
 
-### 29. Cost Is Visible, Use Isn't
+### 30. Cost Is Visible, Use Isn't
 
 You can see what a component costs to load, but not how often it earns that cost. The asymmetry breeds bloat: the cost is paid every session whether the component is used or not, and nothing surfaces the difference. The Single Line Test judges each line by inspection, but inspection can't see usage. Per-component instrumentation can, measuring cost per skill, subagent, rule file, and MCP server alongside how often each is actually used. It replaces "I think this dilutes" with what a component costs and whether that cost is paying off. And it catches what inspection misses, because the heaviest waste is rarely the lines under scrutiny: a forgotten MCP server, loaded every session and rarely used, outweighs the CLAUDE.md prose everyone edits. Measure before you assert, and re-measure after you cut.
 
-### 30. Re-tune as the Model Improves
+### 31. Re-tune as the Model Improves
 
 Every guardrail is written against a specific failure of a specific model, and the model underneath keeps changing: each generation absorbs judgment its predecessor needed scaffolding for. A constraint that earned its keep against one model's mistakes can be dead weight against its successor's, and dead weight is dilution on a slower clock than stale status. Where #4 watches status facts decay, this watches guardrails decay: the mistake that justified a rule stops happening, the rule stays, and it is now calibrated to a model that no longer exists. So re-audit the guardrails on every model upgrade, not just the facts: which mistakes does it no longer make, and which constraints now cost more than they prevent? A configuration that only ever grows is one nobody has re-audited against the model they actually have.
 
 ---
 
-*This is a living document — feedback is welcome via [issues](../../issues), and revisions ship as releases.*
+*Feedback and corrections welcome via [issues](https://github.com/daedahl/claude-code-principles/issues).*
 
-*The story of how these principles were earned: [The Workshop Is the Product](https://davefig.net/essays/the-workshop-is-the-product/).*
-
-*Last updated 2026-06-10 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
+*v1.1 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
