@@ -186,11 +186,15 @@ Every claim in a memory is durable or temporal. **Durable facts** are true about
 
 A rule written after a mistake is a record of an observed failure; a rule written before one is a guess, and Claude's defaults are strong enough that most guessed failures never arrive. Speculative rules are how a configuration bloats: each looks prudent in isolation, none can be checked against anything that actually happened, and together they dilute the rules that earn their keep. A rule born from a real mistake has what a guessed one lacks: evidence it's needed, a concrete behavior to watch for recurrence, and a visible condition for retiring it when the model stops making the mistake. So wait for the failure, then fix it at the most structural layer that solves it. This is what guarding only the cliffs (#13) buys: with the irreversible denied up front, every mistake that remains is recoverable, and a recoverable mistake is cheap evidence.
 
-### 30. Cost Is Visible, Use Isn't
+### 30. Overcorrection Is Agreeableness Amplified
+
+Claude overcorrects. A correction is usually about one case, and Claude treats it as a policy: it fixes the case, then writes the lesson down as a CLAUDE.md line, a memory entry, or an edit to a reference doc, and the written version is stronger than what was said. Asked for fewer, it writes none. Told that this change should have been discussed, it writes that every change must be. The next time a case differs, the line gets walked back. This is over-agreeableness in another form: Claude answers what it infers you want rather than what you said. The instinct to see a pattern is not the problem. Naming the pattern in the reply is judgment at its best, and there you can weigh it. The problem is putting it in a file, because a file is read by every later session with no one there to weigh it. So match the correction's scale. For one case, fix it and write nothing. For a judgment that keeps coming up, write a skill with examples, where the nuance survives. Write a CLAUDE.md line or a memory entry when the pattern is real and you have agreed to it. #29 waits for a mistake before writing a guard; this says most corrections are not asking for one.
+
+### 31. Cost Is Visible, Use Isn't
 
 You can see what a component costs to load, but not how often it earns that cost. The asymmetry breeds bloat: the cost is paid every session whether the component is used or not, and nothing surfaces the difference. The Single Line Test judges each line by inspection, but inspection can't see usage. Per-component instrumentation can, measuring cost per skill, subagent, rule file, and MCP server alongside how often each is actually used. It replaces "I think this dilutes" with what a component costs and whether that cost is paying off. And it catches what inspection misses, because the heaviest waste is rarely the lines under scrutiny: a forgotten MCP server, loaded every session and rarely used, outweighs the CLAUDE.md prose everyone edits. Measure before you assert, and re-measure after you cut.
 
-### 31. Re-tune as the Model Improves
+### 32. Re-tune as the Model Improves
 
 Every guardrail is written against a specific failure of a specific model, and the model underneath keeps changing: each generation absorbs judgment its predecessor needed scaffolding for. A constraint that earned its keep against one model's mistakes can be dead weight against its successor's, and dead weight is dilution on a slower clock than stale status. Where #4 watches status facts decay, this watches guardrails decay: the mistake that justified a rule stops happening, the rule stays, and it is now calibrated to a model that no longer exists. So re-audit the guardrails on every model upgrade, not just the facts: which mistakes does it no longer make, and which constraints now cost more than they prevent? A configuration that only ever grows is one nobody has re-audited against the model they actually have.
 
@@ -198,4 +202,4 @@ Every guardrail is written against a specific failure of a specific model, and t
 
 *Feedback and corrections welcome via [issues](https://github.com/daedahl/claude-code-principles/issues).*
 
-*v1.1 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
+*v1.2 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
