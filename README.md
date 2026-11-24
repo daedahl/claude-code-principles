@@ -52,11 +52,11 @@ A boundary you rely on is held in place by a mechanism, a convention, or a judgm
 
 A mechanism, such as a hook, a file permission, or a withheld tool, holds even against an agent set on finishing its task. It fails by holding where it shouldn't: it can't weigh a case, so it stops an action that should go ahead as firmly as one that shouldn't. A convention, a written norm agents usually follow, holds until an agent has a reason to break it. A judgment, whether auto mode's safety check or an agent weighing the call itself, holds only as well as it reads each case. It can let through a risky action that looks routine, or refuse one that's fine.
 
-So pick the boundary by what's at stake. What must never happen needs a mechanism, whereas a convention or a judgment is enough where a mistake can be caught and undone. But check each mechanism against what an agent can reach: branch protection means little if the agent can read a token that turns it off.
+So pick the boundary by what's at stake. What must never happen needs a mechanism, whereas a convention or a judgment is enough where a mistake can be caught and undone. But check each mechanism against what an agent can reach and what it actually matches: branch protection means little if the agent can read a token that turns it off.
 
 ### 9. Coaching Beats Silent Blocking
 
-A hook that blocks an action decides only that the action doesn't happen. What the agent does next is still its own judgment, and a silent block gives that judgment nothing to work with. Claude is trained to deliver, so a silent block on a raw `git commit` sends the agent looking for a different path: staging manually, trying alternate syntax, eventually finding some way to commit that still bypasses the skill. "Blocked: use the /commit skill, which examines the diff and follows project conventions" sends the agent directly to the right tool, without trial and error. The block is still deterministic; the coaching just makes it useful.
+A hook that blocks an action decides only that the action doesn't happen. What the agent does next is still its own judgment, and a silent block gives that judgment nothing to work with. Claude is trained to deliver, so a silent block on a raw `git commit` sends the agent looking for a different path: staging manually, trying alternate syntax, eventually committing by a route the hook never anticipated, so the block fails at the one thing it was for. "Blocked: commits go through /commit, which examines the diff and follows project conventions" names the intended path, and the agent takes it without trial and error. Where no intended path exists, the reason does the coaching: "Blocked: force-pushing rewrites history others have already pulled" closes the whole class, so the agent stops and asks instead of trying `--force-with-lease`. The block is still deterministic; the coaching just makes it useful.
 
 ### 10. Guard the Cliffs, Not the Road
 
@@ -82,7 +82,7 @@ Every rule should carry its reason, the firm ones included. For most rules, the 
 
 A rule written after a mistake is a record of an observed failure; a rule written before one is a guess, and Claude's defaults are strong enough that most guessed failures never arrive. Speculative rules are how a configuration bloats: each looks prudent in isolation, none can be checked against anything that actually happened, and together they dilute the rules that earn their keep. A rule born from a real mistake has what a guessed one lacks: evidence it's needed, a concrete behavior to watch for recurrence, and a clear condition for retiring it when newer models stop making the mistake.
 
-So wait for the failure, then fix it where it belongs. A problem that recurs after you've told the agent not to, such as editing the tests it's meant to pass, needs a mechanism: a hook, or a tool withheld. Adding more instructions where instructions have already failed is the most common mistake. A failure of behavior usually means the agent was missing something: why you want it done a certain way, or how you use what it hands you. Tell it that, instead of writing a rule against what it did. With the irreversible guarded up front, waiting is safe: the mistakes you wait for are the recoverable kind, and a recoverable mistake is cheap evidence.
+So wait for the failure, then fix it where it belongs. A failure of behavior usually means the agent was missing something: why you want it done a certain way, or how you use what it hands you. Tell it that, instead of writing a rule against what it did. A problem that recurs after the agent has been told why, such as editing the tests it's meant to pass, needs a mechanism: a hook, or a tool withheld. Adding more instructions where instructions have already failed is the most common mistake. With the irreversible guarded up front, waiting is safe: the mistakes you wait for are the recoverable kind, and a recoverable mistake is cheap evidence.
 
 Write a rule only if you can state its reason for being. If the reason won't come clearly, the failure isn't understood yet. If it comes clearly, it answers the rest: whether a rule is needed at all, how far it should reach, and where it belongs.
 
@@ -102,12 +102,15 @@ The fix is never to suppress questions; it is to move them earlier. A question a
 
 ### 16. Define Done, or Claude Will
 
-Claude fills gaps well, so a missing definition of done never stalls the work. The agent supplies its own. It decides which tests count, what the PR includes, what "passing" means, and ships against that. Plausible, confident, and not yours. A fuller description won't fix it: prose criteria get quietly narrowed to fit whatever got built, and the narrowing reads as success. A check can't be narrowed after the fact. It clears the bar you set or it doesn't. Encode done as a test, a check, a CI gate the agent has to turn green; make it prove done, not claim done.
+Claude fills gaps well, so a missing definition of done never stalls the work. The agent supplies its own. It decides which tests count, what the PR includes, what "passing" means, and ships against that. Plausible, confident, and not yours. A fuller description won't fix it: prose criteria get quietly narrowed to fit whatever got built, and the narrowing reads as success. A check can't be narrowed after the fact. It clears the bar you set or it doesn't. Wherever you can, encode done as a test, a check, a CI gate the agent has to turn green; make it prove done, not claim done.
 
-Not every criterion can be a test. Where it can't, it still has to be checkable, because a vague criterion makes every later step guess, and guessing compounds. Hold every criterion to four standards, testable first:
+Not every criterion can be a test. Where it can't, it still has to be checkable, because a vague criterion makes every later step guess, and guessing compounds. Every criterion needs a way to be verified, the strongest available:
 
-- **Testable**: a machine can verify it automatically, as a test assertion
-- **Observable**: a human can verify it after the fact, by running a command or reading output
+- **Testable**: a machine verifies it automatically, as a test assertion. The default.
+- **Observable**: someone other than the builder, a person or a separate agent, verifies it after the fact by running a command or reading output. For what no test can express.
+
+And every criterion, however it's verified, must be:
+
 - **Bounded**: scope is clear
 - **Unambiguous**: two reasonable agents wouldn't disagree
 
@@ -171,4 +174,4 @@ Every guardrail is written against a specific failure of a specific model, and w
 
 *Feedback and corrections welcome via [issues](https://github.com/daedahl/claude-code-principles/issues).*
 
-*v2.0 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
+*v2.1 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
