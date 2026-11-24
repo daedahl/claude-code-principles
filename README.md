@@ -2,11 +2,9 @@
 
 *Dave Figueroa*
 
-Working principles from hands-on Claude Code configuration across multiple projects, developed through my CodeGarage — a meta-project for auditing, tuning, and incubating Claude Code infrastructure.
+Working principles from hands-on Claude Code configuration across multiple projects, developed through my CodeGarage, a meta-project for auditing, tuning, and incubating Claude Code infrastructure.
 
-Configuration is the work of giving Claude what it needs to do good work: orientation, judgment-bearing context, and the right tool at the right layer. Claude has strong defaults; configuration earns its keep by directing where defaults aren't enough, not by cataloguing what to avoid. Every line in front of Claude shapes what it attends to; lines that don't shape attention dilute the ones that do.
-
-Throughout, role names like *coordinator*, *builder*, and *evaluator* refer to custom subagents from my pipelines: conventions of mine, not Claude Code primitives.
+Configuration is the work of giving Claude what it needs to do good work: orientation, judgment-bearing context, and the right tool at the right layer. Claude has strong defaults; configuration earns its keep by directing where defaults aren't enough, not by cataloguing what to avoid. Every line in front of Claude shapes what it attends to; lines that don't shape attention dilute the ones that do. Configuration done well lets you write the spec, hand off the work, and get out of the way.
 
 ---
 
@@ -14,192 +12,163 @@ Throughout, role names like *coordinator*, *builder*, and *evaluator* refer to c
 
 ### 1. Dilution Is the Failure Mode
 
-Everything in context competes for attention. The failure mode isn't just wasted tokens — it's dilution. Larger context windows don't relieve dilution; they amplify it, because the visible cost of adding a rule keeps falling while the attention cost doesn't. A long list of "don't do X" rules becomes background noise by the time the specific edge case arrives. The model stops distinguishing between critical guardrails and cautionary notes. Every turn an agent spends processing unnecessary context is API spend that produced no judgment value. Context efficiency is simultaneously a quality, reliability, and cost concern.
+Everything in context competes for attention. The failure mode isn't just wasted tokens — it's dilution. Larger context windows don't relieve dilution; they amplify it, because the visible cost of adding a rule keeps falling while the attention cost doesn't. A long list of "don't do X" rules becomes background noise by the time the specific edge case arrives. The model stops distinguishing between critical guardrails and cautionary notes. Every turn an agent spends processing unnecessary context is spend that bought no judgment. Context efficiency is simultaneously a quality, reliability, and cost concern.
 
 ### 2. The Single Line Test
 
-Every line in your configuration should pass one test: **"Would removing this line cause Claude to make a mistake?"** If not, cut it. The test's strictness varies by layer. Root CLAUDE.md is strictest: it loads for every session, every agent. An agent prompt that loads once for a single judgment-heavy session has a different cost calculus; comprehensiveness there is often correct.
+Every line in your configuration should pass one test: **"Would removing this line cause Claude to make a mistake?"** If not, cut it. The test's strictness varies by where the line loads. Root CLAUDE.md is strictest: it loads for every session, every agent. An agent prompt that loads once for a single judgment-heavy session has a different cost calculus; comprehensiveness there is often correct.
 
-### 3. Bloat Costs More at the Top
+### 3. Lean at the Top, Deep Where Judgment Compounds
 
 CLAUDE.md is the most expensive real estate; agent prompts are the cheapest. Be strict where context loads always, comprehensive where it loads once. A lean CLAUDE.md frees budget for depth in agent prompts, and that's where it matters most. Agent prompts for judgment-heavy, single-purpose agents are the highest-return investment in your entire configuration.
 
-### 4. Stale Configuration Is Worse than No Configuration
+Within agent prompts, depth pays most where an agent's judgment shapes what comes after it, such as a plan or a review, or where nothing checks its work afterward. An agent carrying out a settled plan, with a review behind it, can stay lean.
 
-Claude reads everything in CLAUDE.md as ground truth. When status-oriented facts drift, Claude makes decisions based on a world that no longer exists. No status leaves Claude uncertain; stale status makes Claude confidently wrong. The fix is separating what changes from what doesn't. Architecture truths (pipeline shape, module ownership) go in CLAUDE.md. Status (phase, what's built, what's pending) needs a different home, ideally one mechanically updated by the pipeline.
+### 4. Just-in-Time Knowledge
 
----
+Instructions are most effective when they arrive at the moment they're contextually relevant, not preloaded as permanent weight. Path-scoped rules load when Claude touches matching files. Skills load when invoked. Agent prompts deliver context at spawn time. A well scoped rules file for one domain doesn't eat context during work in another. The request you type in session arrives last of all, and an instruction there outweighs the same line in CLAUDE.md.
 
-## II. Layer Discipline
+### 5. CLAUDE.md Answers One Question
 
-### 5. Find the Right Layer
+CLAUDE.md answers: **"What is this project and where are things?"** Project identity, architecture pointers, fragile areas. Behavioral rules, domain knowledge, and process instructions all have better homes: places where they load conditionally or stay templatable across projects. How you want to work with Claude is the exception, because it applies to every project: that belongs in your user-level CLAUDE.md, written as intent.
 
-When a problem surfaces, find the most structural layer that solves it and solve it there. The layers:
+### 6. Stale Configuration Is Worse than No Configuration
 
-1. **Structure**: hooks, tool restrictions, file permissions
-2. **Process design**: separation of concerns between agents
-3. **Agent instructions**: focused on judgment and sequencing
-4. **Path-scoped rules**: behavioral rules that load only when relevant
-5. **Ambient rules**: behavioral expectations that load every session
-6. **CLAUDE.md**: project orientation (most dilution-prone)
+Claude reads everything in CLAUDE.md as ground truth. When status-oriented facts drift, Claude makes decisions based on a world that no longer exists. No status leaves Claude uncertain; stale status makes Claude confidently wrong. The fix is separating what changes from what doesn't. Architecture truths (system shape, module ownership) go in CLAUDE.md. Status (phase, what's built, what's pending) needs a different home, ideally one updated automatically as the work progresses.
 
-If a builder keeps editing tests, that needs a hook (layer 1), not an instruction (layer 3). Responding to recurring problems with more instructions instead of structural enforcement is the most common mistake.
+### 7. Automate the Mechanical, Reserve Turns for Judgment
 
-When the problem is *orchestration itself* (what runs next, in what order, with what retries), the most structural option is to hold the control flow in a deterministic script rather than an agent's turn-by-turn judgment. Orchestration-as-code outranks separation-by-convention (2) and coordinator instructions (3): a script can't be reasoned past, and it can't silently decide to do the work itself. See III for where it lands on the judgment/mechanism axis.
+A script is cheaper, faster, fully deterministic. An LLM's token cost is the price of discernment, worth paying only when the right action depends on reading the situation. A commit skill that examines the diff and writes an appropriate message does something `git commit -m "update"` never could. A test runner that just executes `pytest` doesn't need to be a skill.
 
-### 6. Just-in-Time Knowledge
-
-Instructions are most effective when they arrive at the moment they're contextually relevant, not preloaded as permanent weight. Path-scoped rules load when Claude touches matching files. Skills load when invoked. Agent prompts deliver context at spawn time. A scoped rules file for one domain doesn't eat context during work in another.
-
-### 7. Hooks Can't Be Reasoned Past
-
-A hook that blocks an action cannot be reasoned past; an instruction that says "don't do X" can. When a behavioral rule keeps getting violated, promoting it to a structural hook is the next step. Coaching feedback (#11) in the hook output makes this more effective than silent denial. The agent gets actionable feedback without trial and error.
-
-### 8. CLAUDE.md Answers One Question
-
-CLAUDE.md answers: **"What is this project and where are things?"** Project identity, architecture pointers, fragile areas. Behavioral rules, domain knowledge, and process instructions all have better homes: places where they load conditionally or stay templatable across projects.
+When an agent spends half its turns running boilerplate that could be a script, that's three costs at once: its attention splits (clarity loss), mechanical output fills its context (quality loss), and the turns are spend that bought no judgment (cost). The best skills *use* scripts for their mechanical steps and reserve LLM attention for the judgment parts. Clarity, quality, and cost all point the same direction.
 
 ---
 
-## III. Judgment vs. Mechanism
+## II. Rules and Boundaries
 
-The axis here has two endpoints: a script (deterministic, no judgment) and a skill (an LLM in the loop because the right action depends on reading the situation). A third point sits between them. A script whose *steps* are judgment calls is a deterministic orchestration of non-deterministic agents: the sequencing (what runs, in what order, how many retries) is code, so it can't be reasoned past or silently adapted, while the work inside each step is still an agent exercising judgment. Put the determinism in the sequencing and the judgment in the steps.
+### 8. Choose the Failure You Can Afford
 
-### 9. The Token Cost of a Skill Is the Cost of Discernment
+A boundary you rely on is held in place by a mechanism, a convention, or a judgment, and each fails differently.
 
-A script is cheaper, faster, fully deterministic. The reason to pay the token cost of an LLM in the loop is that the right action depends on reading the situation. A commit skill that examines the diff and writes an appropriate message does something `git commit -m "update"` never could. A test runner that just executes `pytest` doesn't need to be a skill. Match the mechanism to the judgment required.
+A mechanism, such as a hook, a file permission, or a withheld tool, holds even against an agent set on finishing its task. It fails by holding where it shouldn't: it can't weigh a case, so it stops an action that should go ahead as firmly as one that shouldn't. A convention, a written norm agents usually follow, holds until an agent has a reason to break it. A judgment, whether auto mode's safety check or an agent weighing the call itself, holds only as well as it reads each case. It can let through a risky action that looks routine, or refuse one that's fine.
 
-### 10. Automate the Mechanical, Reserve Turns for Judgment
+So pick the boundary by what's at stake. What must never happen needs a mechanism, whereas a convention or a judgment is enough where a mistake can be caught and undone. But check each mechanism against what an agent can reach: branch protection means little if the agent can read a token that turns it off.
 
-When an agent spends half its turns running boilerplate that could be a script or skill, that's three costs at once: split attention (clarity loss), context filled with mechanical output (quality loss), and API spend with no judgment value (cost). The best skills *use* scripts for their mechanical steps and reserve LLM attention for the judgment parts. Clarity, quality, and cost all point the same direction.
+### 9. Coaching Beats Silent Blocking
 
-### 11. Coaching Beats Silent Blocking
+A hook that blocks an action decides only that the action doesn't happen. What the agent does next is still its own judgment, and a silent block gives that judgment nothing to work with. Claude is trained to deliver, so a silent block on a raw `git commit` sends the agent looking for a different path: staging manually, trying alternate syntax, eventually finding some way to commit that still bypasses the skill. "Blocked: use the /commit skill, which examines the diff and follows project conventions" sends the agent directly to the right tool, without trial and error. The block is still deterministic; the coaching just makes it useful.
 
-A hook that blocks an action and tells the agent why is significantly more effective than silent denial. A silent block on a raw `git commit` sends the agent looking for a different path: staging manually, trying alternate syntax, eventually finding some way to commit that still bypasses the skill. "Blocked: use the /commit skill, which examines the diff and follows project conventions" sends the agent directly to the right tool. The block is still deterministic; the coaching just makes it useful.
-
-### 12. Invest Where Judgment Compounds
-
-Comprehensiveness isn't dilution when every line earns judgment. The cost calculus differs by where the prompt sits. Three categories matter:
-
-- **Judgment multipliers** (planners, evaluators): comprehensive prompts raise the quality ceiling for every downstream agent and product produced. Invest deeply.
-- **Judgment endpoints** (doc-curator): no quality gate downstream. The bar must be internalized.
-- **Execution agents** (builders, verifiers): can stay lean if the judgment agents upstream are strong.
-
----
-
-## IV. Autonomy & Safety
-
-### 13. Guard the Cliffs, Not the Road
+### 10. Guard the Cliffs, Not the Road
 
 **If failure is detectable and recoverable, permissiveness is preferred. If failure is irreversible, deny by default.**
 
-Permissiveness buys two things: visibility and adaptability. Mistakes are evidence. A builder that modifies files it shouldn't shows you the pattern to fix structurally, which a tight constraint would have hidden. And capable models bring judgment to edge cases the rules didn't anticipate, find better paths, recover from surprises, but only when they have room to do so. Constraints have costs that compound as models get more capable; the more able the agent, the more you forfeit by hemming it in. The cliffs — `git push --force`, `rm -rf` on untracked work — get explicit denies because no downstream agent can undo them. Everything else, you let run and watch.
+Permissiveness buys two things: visibility and adaptability. Mistakes are evidence. An agent that modifies files it shouldn't shows you the pattern to fix structurally, which a tight constraint would have hidden. And capable models bring judgment to edge cases the rules didn't anticipate, find better paths, recover from surprises, but only when they have room to do so. Constraints have costs that compound as models get more capable; the more able the agent, the more you forfeit by hemming it in.
 
-### 14. Adaptiveness Without Observability Is a Liability
+The cliffs, such as `git push --force`, get explicit denies because they can't be undone. Name the cliffs in your own work, the few actions nothing can take back, and deny exactly those. Keep the denies that narrow: a broad deny overrides auto mode's safety check even where it would rightly allow an action, for example an agent clearing the scratch files it made. But a deny rule matches the command as Claude usually writes it, not every way of writing it: a deny on `git push --force` doesn't stop `git -C . push --force`. So back each cliff with something that holds however the command is written, such as branch protection on the remote, or sandboxing for files. Guard the cliffs. Everything else, you let run, watch, and fix what the watching shows you.
 
-Claude's adaptiveness is also its most dangerous quality in a pipeline. When something fails, Claude doesn't stop and report. It adapts. A coordinator invoked the wrong way silently does everything itself, bypassing the evaluator and every quality gate. A broken skill silently falls back to raw bash, bypassing every check the skill enforced. Silent adaptation defeats detection, turning recoverable failures into undetectable ones. Pipeline design must build detection for the adaptation, not just the original failure.
+### 11. Work With the Grain
 
-### 15. Surface the Adaptation
+Configuration can direct what Claude attends to; it doesn't reliably override what training made reflexive. A habit that comes from training acts on the message in front of Claude, and it outweighs instructions loaded at the start of the session. This is why a failure can persist while a plain instruction against it is loaded.
 
-Adaptation isn't the problem; silent adaptation is. An agent that reports "I expected X, found Y, adjusted by doing Z" or "I tried X, it didn't work because Y" is doing the work as designed; reporting deviations *is* part of the work, not overhead. An agent that quietly produces output that *looks like the plan worked* defeats every downstream check. As agents get more capable and pipelines more autonomous, what they report back becomes the load-bearing piece keeping the human in the loop.
+Don't fight it with more rules. Claude has its own way of doing things, and letting it stand is usually cheaper than contradicting it, so step in only where it's causing a problem. Where a habit does get in the way, find the path where it does the work for you. Claude's pull to produce something is strong, so give it the right thing to produce. A CLAUDE.md line telling Claude to push back when it disagrees loses to its pull toward agreement. Asking "what's wrong with this plan?" uses the pull instead: objections become the thing to produce, and Claude finds them.
 
-### 16. Knowing When to Quit
+### 12. Carry the Intent
 
-Claude is trained to deliver, and can almost always find a workaround, which is exactly the problem. The discipline isn't recognizing when the agent *can't* push through; it's establishing when it *shouldn't*. Asked to build X with Y, if Y is broken, a tragically helpful agent silently scopes to "X without Y" and delivers a "success" the user can't course-correct because they can't see it. When a workaround would change the deliverable's identity, silently reduce scope, or paper over a problem the user needs to see, the right move is to stop and report. Surfacing real problems is part of the work, not a fallback from it. An honest stop preserves the human's ability to decide; a tragic completion forecloses it.
+An instruction without its reason gets followed even after following it stops making sense, because the receiver has no way to tell. That receiver might be a subagent, or a later session reading your rules. Give it the reason along with the work, and it can notice when doing what it was told would defeat what you wanted, and say so instead of carrying on.
 
-### 17. The Human Is for Decisions, Not Mechanical Approval
+Every rule should carry its reason, the firm ones included. For most rules, the reason lets the agent set the rule aside when following it would work against its purpose. Without it, a provisional "keep it simple" gets read as a ban on frameworks, and a word limit gets kept at the cost of the content. For a rule against something that can't be undone, such as force-pushing over shared history, the reason works the other way. It says why there are no exceptions, which makes the rule harder to argue around, not easier. And it lets the agent apply the rule to cases the wording didn't name.
 
-The high-value human work is planning, scoping, and deciding when work is ready. With autonomous execution available, the human's role is increasingly checkpoint-shaped: verifying outputs, approving promotion, answering scoping questions, not approving routine tool calls in real time. Structural enforcement (deny rules, scoped tools, hooks) handles the safety layer so attention stays on decisions only a human can make. `bypassPermissions` isn't the answer for getting out of the way; tightening the structure is.
+### 13. Write Rules After Mistakes, Not Before
 
----
+A rule written after a mistake is a record of an observed failure; a rule written before one is a guess, and Claude's defaults are strong enough that most guessed failures never arrive. Speculative rules are how a configuration bloats: each looks prudent in isolation, none can be checked against anything that actually happened, and together they dilute the rules that earn their keep. A rule born from a real mistake has what a guessed one lacks: evidence it's needed, a concrete behavior to watch for recurrence, and a clear condition for retiring it when newer models stop making the mistake.
 
-## V. Separation of Concerns
+So wait for the failure, then fix it where it belongs. A problem that recurs after you've told the agent not to, such as editing the tests it's meant to pass, needs a mechanism: a hook, or a tool withheld. Adding more instructions where instructions have already failed is the most common mistake. A failure of behavior usually means the agent was missing something: why you want it done a certain way, or how you use what it hands you. Tell it that, instead of writing a rule against what it did. With the irreversible guarded up front, waiting is safe: the mistakes you wait for are the recoverable kind, and a recoverable mistake is cheap evidence.
 
-### 18. The Strongest Rule Is a Withheld Tool
+Write a rule only if you can state its reason for being. If the reason won't come clearly, the failure isn't understood yet. If it comes clearly, it answers the rest: whether a rule is needed at all, how far it should reach, and where it belongs.
 
-An agent that doesn't have the Write tool can't edit code, regardless of what its prompt says. An evaluator with read-only tools can't be talked into a quick fix mid-review. A coordinator without Write/Edit can't decide to "just handle it itself" when delegation feels slow. Behavioral separation enforced by instruction is a suggestion; behavioral separation enforced by tool configuration is a constraint. It's #7 at the agent level: instructions are suggestions, tool restrictions are constraints.
+### 14. Concrete Rules Are Greppable Rules
 
-### 19. Specialize When Incentives Diverge
-
-An agent doing both build and evaluation has incentive to grade its own work generously, especially when the alternative is starting over. The builder optimizes for shipping; the evaluator optimizes for catching. Combine them and you get the average of the two pressures. Separation isolates the pressures so each agent is judged on what it's actually built to do. The principle generalizes: split agents wherever combining roles would produce a conflict the pipeline can't audit, because the compromise happens inside the agent's reasoning, not in any artifact a downstream check can inspect.
-
-### 20. Each Handoff Is a Filter
-
-A handoff compresses what the previous agent saw into what they returned: the next agent gets the output, not the reasoning. That's often the point. A researcher agent mines logs and hands back the finding; a doc-curator trims library docs to what matters. The compression *is* the value. But the same mechanism can drop signal. A builder hands off to an evaluator without conveying why an approach was chosen, and the evaluator can't tell intentional choice from oversight.
-
-Place each boundary where its filter drops noise to amplify signal. The failure runs in both directions: too few agents and structural enforcement falls apart; too many and signal degrades, because no filter is perfect and there are only so many natural points where filtering helps. Each handoff also pays costs in spawn overhead and re-orientation. The right granularity is the smallest number of agents that gives you the capability separations you actually need. Coordinator + builder + evaluator covers most cases. Add a planner when planning is its own judgment-heavy step. Add a verifier when "did the build pass?" is a separable question from "is the work good?"
+If a rule about the code has to hold, write it so a diff can check it. "No sqlite3 imports outside db.py and test files" passes: a hook can grep for it. "Use modular architecture" fails: no diff can show whether it held. If you can't describe a grep command or point to a specific import to check, the rule isn't concrete enough to hold on its own. That doesn't make it a bad rule. It makes it a judgment, and it holds only as well as the review that reads it. When a rule can be checked by a script, let a script check it, and save the review for the rules that need judgment.
 
 ---
 
-## VI. Pipeline Contracts
+## III. Delegation
 
-### 21. Define Done, or Claude Will
+### 15. Settle the Spec, Then Get Out of the Way
+
+The human's attention is the scarcest resource in the work, and every question spends it. Spend it up front. Before the build starts, Claude should raise the questions whose answers change the outcome, each with its own lean. Then it should finish without you. Decisions found along the way are Claude's: make the best call, record it as Claude's, keep it easy to change. A thing built on a wrong guess beats a thing not started. It stops only for what needs your authority: something irreversible or outward-facing, or a change to what was agreed.
+
+The fix is never to suppress questions; it is to move them earlier. A question answered in planning costs one exchange; the same question surfacing mid-build costs a stop, a redo, and whatever was already built on the wrong assumption. Plan in the fullest detail the task allows. A thorough plan is what keeps the build from stalling, not the freedom to stop and ask. A question mid-build is a sign that planning left something unresolved: a criterion left vague, or a decision that should have been scheduled as a checkpoint.
+
+### 16. Define Done, or Claude Will
 
 Claude fills gaps well, so a missing definition of done never stalls the work. The agent supplies its own. It decides which tests count, what the PR includes, what "passing" means, and ships against that. Plausible, confident, and not yours. A fuller description won't fix it: prose criteria get quietly narrowed to fit whatever got built, and the narrowing reads as success. A check can't be narrowed after the fact. It clears the bar you set or it doesn't. Encode done as a test, a check, a CI gate the agent has to turn green; make it prove done, not claim done.
 
-Every other layer raises the probability of good work; a definition of done you can check confirms it.
-
-### 22. Acceptance Criteria Are an Autonomy Contract
-
-When a pipeline runs autonomously, criteria become load-bearing. Vague criteria cause every downstream agent to guess, and guessing compounds. Four checks for every criterion, testable first:
+Not every criterion can be a test. Where it can't, it still has to be checkable, because a vague criterion makes every later step guess, and guessing compounds. Hold every criterion to four standards, testable first:
 
 - **Testable**: a machine can verify it automatically, as a test assertion
 - **Observable**: a human can verify it after the fact, by running a command or reading output
 - **Bounded**: scope is clear
 - **Unambiguous**: two reasonable agents wouldn't disagree
 
-### 23. Concrete Boundaries Are Greppable Boundaries
+Everything else you configure raises the probability of good work; a definition of done you can check confirms it.
 
-Every boundary rule must be checkable by grepping imports or reading a diff. "No sqlite3 imports outside db.py and test files" passes: an evaluator can grep for it. "Use modular architecture" fails: an evaluator can't verify it against a diff. If you can't describe a grep command or point to a specific import to check, the rule isn't concrete enough. Rules files are the evaluator's enforcement spec; their concreteness bounds its effectiveness.
+### 17. Report the Workaround, and Know When to Quit
 
-### 24. User Input Is for Prescribed Checkpoints
+Claude is trained to deliver. When something fails, it would rather adapt than stop and report, and it can almost always find a workaround, which is exactly the problem. Asked to build X with Y, if Y is broken, a tragically helpful agent silently scopes to "X without Y" and delivers it as a success. Every check on X passes, and nothing checks that Y was used. When the adaptation is silent, nobody knows anything went wrong, and a failure you could have course-corrected becomes one you never see.
 
-When an agent stops to ask the user something mid-execution, two upstream failure modes hide behind the same symptom: a vague criterion that should have been tightened in planning, or a decision gate that should have been scheduled as a checkpoint. Neither is a feature to build by adding "ask user" capability; both are signals that structure is missing upstream. Letting agents ask freely erodes the autonomy contract: every interruption is a context switch for the human, and once asking is permitted, planning quality degrades because gaps don't have to be resolved before launch. Surfacing what changed (#15) is fine: that's reporting, not blocking. Quitting cleanly on a problem (#16) is reporting too. Asking is for checkpoints.
+Adaptation isn't the problem; silent adaptation is. An agent that reports "I expected X, found Y, adjusted by doing Z" or "I tried X, it didn't work because Y" is doing the work as designed; reporting deviations *is* part of the work, not overhead. Finishing without you still means telling you where it departed from the plan, and the longer work runs on its own, the more that matters.
 
-The fix is never to suppress questions; it is to move them earlier, into planning, where the human already spends the bulk of their attention. This holds at every agentic depth: a direct session and a deep pipeline both run cleaner when the gaps are closed before the build phase starts. A question answered in planning costs one exchange; the same question surfacing mid-build costs a stop, a redo, and whatever was already built on the wrong assumption. Plan in the fullest detail the task allows. The thoroughness of the plan, not the permissiveness of asking, is what keeps the build phase from stalling, and mid-execution questions are the symptom that planning left something unresolved.
+The discipline isn't recognizing when the agent *can't* push through; it's establishing when it *shouldn't*. When a workaround would change the deliverable's identity, silently reduce scope, or paper over a problem the user needs to see, the right move is to stop and report. When an action is blocked, a workaround is the same mistake: either the block is wrong and should be changed, or it's right and the action shouldn't happen that way, and going around it settles neither. If the agent stops where going on would change what was agreed, the decision is still yours. If it finishes anyway, it has changed the goal without you.
 
----
+### 18. The Human Is for Decisions, Not Mechanical Approval
 
-## VII. Memory
+The high-value human work is planning, scoping, and deciding when work is ready. With autonomous execution available, the human's role is increasingly checkpoint-shaped: verifying outputs, approving promotion, answering scoping questions, not approving routine tool calls in real time. Structural enforcement (deny rules, scoped tools, hooks, sandboxing) and auto mode's classifier handle the safety layer, so attention stays on decisions only a human can make. `bypassPermissions` isn't the answer for getting out of the way; tightening the structure is.
 
-### 25. Memory Is Claude's Domain, but Your Responsibility
-
-Memory writing is autonomous: Claude writes during directed work, shaped by what felt important in the moment, potentially without you noticing. You don't always choose what gets saved; the default flow doesn't route through you. The leverage is direction, not suppression. Trigger cleanup yourself; Claude won't initiate it during directed work, so memories accumulate and degrade until something prompts a review. Whether to run memory at all is an up-front, workflow-dependent call: it lives in interactive planning and discussion, so if the upkeep outweighs the gain for how you work, disabling it is legitimate.
-
-### 26. The Memory Index Is for Routing
-
-The memory index loads every session; the underlying memory files don't. Each entry's description is what tells Claude whether to open the file, which makes descriptions the routing mechanism. Write them as activation context ("when should I open this?"), not as content summaries. A summary tells Claude what's in the file; a trigger tells Claude when it matters. The first makes the index a table of contents; the second makes it a triage layer.
-
-### 27. Memory Is the Configuration That Rots
-
-Every other layer changes only when you change it. Memory writes itself, accruing as Claude works, with nothing to maintain what accumulates. It is hidden context that goes stale untouched: nothing corrects a claim that stops being true. A stale memory may override the instruction you deliberately wrote; you cannot count on the authored rule winning. And because it may not fire every session, the interference could be intermittent: the hardest kind to catch, because it will not reproduce on demand. The staleness you cannot see is the staleness that gets you.
-
-### 28. Mark What Will Go Stale
-
-Every claim in a memory is durable or temporal. **Durable facts** are true about the nature of something: "this project is a portfolio site," "the user prefers rebase over merge." Safe to trust without verification. **Temporal claims** are true at a point in time: status updates, file paths, "next session" plans. Mark them explicitly so they can be discarded. Autonomous memory maintenance requires an explicit trigger; left to itself, memory accumulates and degrades indefinitely.
+The same holds in the other direction. Each time an agent hands the human something it could have handled (an approval already given, a step it could have taken, a command to run by hand), it spends attention on mechanics. Those handoffs should be rare. When they aren't, the boundaries are drawn wrong: set them so agents can work safely without routing through you.
 
 ---
 
-## VIII. Configuration Lifecycle
+## IV. Multi-Agent Work
 
-### 29. Write Rules After Mistakes, Not Before
+### 19. Specialize When Incentives Diverge
 
-A rule written after a mistake is a record of an observed failure; a rule written before one is a guess, and Claude's defaults are strong enough that most guessed failures never arrive. Speculative rules are how a configuration bloats: each looks prudent in isolation, none can be checked against anything that actually happened, and together they dilute the rules that earn their keep. A rule born from a real mistake has what a guessed one lacks: evidence it's needed, a concrete behavior to watch for recurrence, and a visible condition for retiring it when the model stops making the mistake. So wait for the failure, then fix it at the most structural layer that solves it. This is what guarding only the cliffs (#13) buys: with the irreversible denied up front, every mistake that remains is recoverable, and a recoverable mistake is cheap evidence.
+An agent doing both build and evaluation has incentive to grade its own work generously, especially when the alternative is starting over. The agent that builds optimizes for shipping; the one that evaluates optimizes for catching. Combine them and you get the average of the two pressures. Separation isolates the pressures so each agent is judged on what it's actually built to do. The principle generalizes: split agents wherever combining roles would produce a conflict no one can audit, because the compromise happens inside the agent's reasoning, not in any artifact a later check can inspect.
 
-### 30. Overcorrection Is Agreeableness Amplified
+### 20. The Strongest Rule Is a Withheld Tool
 
-Claude overcorrects. A correction is usually about one case, and Claude treats it as a policy: it fixes the case, then writes the lesson down as a CLAUDE.md line, a memory entry, or an edit to a reference doc, and the written version is stronger than what was said. Asked for fewer, it writes none. Told that this change should have been discussed, it writes that every change must be. The next time a case differs, the line gets walked back. This is over-agreeableness in another form: Claude answers what it infers you want rather than what you said. The instinct to see a pattern is not the problem. Naming the pattern in the reply is judgment at its best, and there you can weigh it. The problem is putting it in a file, because a file is read by every later session with no one there to weigh it. So match the correction's scale. For one case, fix it and write nothing. For a judgment that keeps coming up, write a skill with examples, where the nuance survives. Write a CLAUDE.md line or a memory entry when the pattern is real and you have agreed to it. #29 waits for a mistake before writing a guard; this says most corrections are not asking for one.
+A subagent meant to hold work to a standard, with no Write, Edit, Bash, or Agent, can't be talked into a quick fix mid-review. A session meant to coordinate, left only the Agent tool, can't "just handle it itself" and go around the subagents, skills, and workflow scripts the work is meant to pass through. Behavioral separation enforced by instruction is a suggestion; behavioral separation enforced by tool configuration is a constraint. And an agent that can't bypass the intended workflow can't paper over a problem: the problem has to be reported so the fix can be made where it belongs.
 
-### 31. Cost Is Visible, Use Isn't
+### 21. Each Handoff Is a Filter
 
-You can see what a component costs to load, but not how often it earns that cost. The asymmetry breeds bloat: the cost is paid every session whether the component is used or not, and nothing surfaces the difference. The Single Line Test judges each line by inspection, but inspection can't see usage. Per-component instrumentation can, measuring cost per skill, subagent, rule file, and MCP server alongside how often each is actually used. It replaces "I think this dilutes" with what a component costs and whether that cost is paying off. And it catches what inspection misses, because the heaviest waste is rarely the lines under scrutiny: a forgotten MCP server, loaded every session and rarely used, outweighs the CLAUDE.md prose everyone edits. Measure before you assert, and re-measure after you cut.
+A handoff compresses what the previous agent saw into what they returned: the next agent gets the output, not the reasoning. That's often the point. A subagent mines logs and hands back the finding; another trims library docs to what matters. The compression *is* the value. But the same mechanism misused can drop signal. A coder hands off to an evaluator without conveying why an approach was chosen, and the evaluator can't tell intentional choice from oversight.
 
-### 32. Re-tune as the Model Improves
+Place each boundary where its filter drops noise to amplify signal. The failure runs in both directions: too few agents and conflicting roles end up in one agent, where one quietly gives way to the other; too many handoffs in a chain and signal degrades, because no filter is perfect and there are only so many natural points where filtering helps. Each handoff also pays costs in spawn overhead and re-orientation. The right granularity is the fewest handoffs that give you the separations you actually need. Add an agent when planning is its own judgment-heavy step, or when "did the build pass?" is a separable question from "is the work good?"
 
-Every guardrail is written against a specific failure of a specific model, and the model underneath keeps changing: each generation absorbs judgment its predecessor needed scaffolding for. A constraint that earned its keep against one model's mistakes can be dead weight against its successor's, and dead weight is dilution on a slower clock than stale status. Where #4 watches status facts decay, this watches guardrails decay: the mistake that justified a rule stops happening, the rule stays, and it is now calibrated to a model that no longer exists. So re-audit the guardrails on every model upgrade, not just the facts: which mistakes does it no longer make, and which constraints now cost more than they prevent? A configuration that only ever grows is one nobody has re-audited against the model they actually have.
+### 22. Pass Evidence, Not Verdicts
+
+When you ask an agent to check work, how you ask decides what it finds. "Check that this fix works" asks it to confirm, and it usually will. "Find what this fix breaks" asks it to look. You rarely tell a reviewer what to conclude outright, but you influence it in the shape of the request, or in a summary of what you believe sent ahead of the diff. Hand a reviewing agent the evidence and the criteria, and ask what's wrong. A review that only confirms looks exactly like one that found nothing.
+
+---
+
+## V. Maintenance
+
+### 23. Memory Has Hidden Costs
+
+Memory writes itself, accruing as Claude works, and nothing corrects a claim that stops being true. Every other piece of configuration changes only when you change it. A stale memory may override the instruction you deliberately wrote, and because most of it is read only when Claude judges it relevant, the interference can be intermittent: the hardest kind to catch, because it won't reproduce on demand.
+
+If the upkeep outweighs the gain for how you work, turning memory off is legitimate: `autoMemoryEnabled: false` in a project's settings, or `/memory` to turn it off by default. If you keep it, have it audited regularly: Claude Code prompts Claude to trim the index when it grows too long, but nothing checks whether what's in it is still true. Ask Claude, or a skill, to check each memory against the project as it is now.
+
+### 24. Measure What Loads
+
+Everything that loads into a session has a cost you can measure: `/context` shows what loads and how much. For what's invoked, use can be measured too: `/skill-doctor` shows what each skill costs and how often it gets used, and `/doctor` flags the skills, MCP servers, and plugins that sit unused. A component you pay for every session and never invoke is the easiest to cut.
+
+### 25. Re-tune as the Model Improves
+
+Every guardrail is written against a specific failure of a specific model, and what's underneath keeps changing: each model generation absorbs judgment its predecessor needed scaffolding for, and each harness release builds in what you once built by hand. A constraint that earned its keep against one model's mistakes can be dead weight against its successor's: the mistake that justified a rule stops happening, the rule stays, and it is now calibrated to a model that no longer exists. So re-audit the guardrails on every model upgrade: which mistakes does it no longer make, and which constraints now cost more than they prevent? `/doctor prompt-audit` does much of the work, flagging instructions written for older models. A configuration that only ever grows is one nobody has re-audited against the model they actually have.
 
 ---
 
 *Feedback and corrections welcome via [issues](https://github.com/daedahl/claude-code-principles/issues).*
 
-*v1.2 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
+*v2.0 · © Dave Figueroa · [CC BY 4.0](LICENSE)*
